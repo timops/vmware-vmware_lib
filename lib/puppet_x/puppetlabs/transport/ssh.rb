@@ -21,13 +21,18 @@ module PuppetX::Puppetlabs::Transport
     end
 
     def connect
-      @ssh ||= Net::SSH.start(@host, @user, @options)
+      #@ssh ||= Net::SSH.start(@host, @user, @options)
     end
 
     # wrapper for debugging
     def exec!(command)
+      result = ''
       Puppet.debug("Executing on #{@host}:\n#{command}")
-      result = @ssh.exec!(command)
+      # The VCSA appliance uses 'MaxSessions 1' in sshd_config, so multiplexing a single connection isn't allowed.
+      # This will spin up and tear down a TCP session for each resource - slow, but it works.
+      Net::SSH.start(@host, @user, @options) do |ssh|
+        result = ssh.exec!(command)
+      end
       Puppet.debug("Execution result:\n#{result}")
       result
     end
